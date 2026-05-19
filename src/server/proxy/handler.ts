@@ -109,7 +109,11 @@ async function handleOpenaiChat(
   apiKey: string,
   isStream: boolean,
 ): Promise<Response> {
-  const transformed = anthropicToOpenaiChat(body)
+  const deepSeekCompatible = shouldUseDeepSeekReasoningCompat(baseUrl)
+  const transformed = anthropicToOpenaiChat(body, {
+    roundTripReasoningContent: deepSeekCompatible,
+    passThinkingToggle: deepSeekCompatible,
+  })
   const url = `${baseUrl}/v1/chat/completions`
 
   const upstream = await fetch(url, {
@@ -158,6 +162,13 @@ async function handleOpenaiChat(
   const responseBody = await upstream.json()
   const anthropicResponse = openaiChatToAnthropic(responseBody, body.model)
   return Response.json(anthropicResponse)
+}
+
+function shouldUseDeepSeekReasoningCompat(baseUrl: string): boolean {
+  return (
+    /(^|[./-])deepseek([./-]|$)/i.test(baseUrl) ||
+    /(^|[./-])opencode\.ai([:/]|$)/i.test(baseUrl)
+  )
 }
 
 async function handleOpenaiResponses(
