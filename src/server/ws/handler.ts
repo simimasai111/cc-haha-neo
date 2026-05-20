@@ -17,6 +17,7 @@ import { computerUseApprovalService } from '../services/computerUseApprovalServi
 import { sessionService } from '../services/sessionService.js'
 import { SettingsService } from '../services/settingsService.js'
 import { ProviderService } from '../services/providerService.js'
+import { isOpenAIOfficialProviderId } from '../services/openaiOfficialProvider.js'
 import { diagnosticsService } from '../services/diagnosticsService.js'
 import { deriveTitle, generateTitle, saveAiTitle } from '../services/titleService.js'
 import { parseSlashCommand } from '../../utils/slashCommandParsing.js'
@@ -1638,12 +1639,22 @@ type RuntimeSettings = {
   providerId?: string | null
 }
 
+function isKnownRuntimeProviderId(
+  providerId: string,
+  providers: Array<{ id: string }>,
+): boolean {
+  return (
+    isOpenAIOfficialProviderId(providerId) ||
+    providers.some((provider) => provider.id === providerId)
+  )
+}
+
 async function getRuntimeSettings(sessionId?: string): Promise<RuntimeSettings> {
   const runtimeOverride = sessionId ? runtimeOverrides.get(sessionId) : undefined
   if (runtimeOverride) {
     if (typeof runtimeOverride.providerId === 'string') {
       const { providers } = await providerService.listProviders()
-      const providerExists = providers.some((provider) => provider.id === runtimeOverride.providerId)
+      const providerExists = isKnownRuntimeProviderId(runtimeOverride.providerId, providers)
       if (!providerExists) {
         console.warn(
           `[WS] Ignoring stale runtime provider id for ${sessionId}: ${runtimeOverride.providerId}`,
@@ -1676,7 +1687,7 @@ async function getDefaultRuntimeSettings(): Promise<RuntimeSettings> {
   // Check if a custom provider is active
   const { providers, activeId } = await providerService.listProviders()
   let resolvedActiveId = activeId
-  if (activeId && !providers.some((provider) => provider.id === activeId)) {
+  if (activeId && !isKnownRuntimeProviderId(activeId, providers)) {
     console.warn(`[WS] Active provider id is stale, falling back to official provider: ${activeId}`)
     resolvedActiveId = null
     await providerService.activateOfficial()

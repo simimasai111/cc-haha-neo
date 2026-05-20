@@ -260,7 +260,7 @@ describe('Settings > General tab', () => {
       updateH5AccessSettings: vi.fn(),
     })
 
-    useUIStore.setState({ pendingSettingsTab: null })
+    useUIStore.setState({ pendingSettingsTab: null, toasts: [] })
     useUpdateStore.setState({
       status: 'idle',
       availableVersion: null,
@@ -345,7 +345,11 @@ describe('Settings > General tab', () => {
     expect(saveButton).toBeDisabled()
 
     fireEvent.change(proxyInput, { target: { value: '  http://127.0.0.1:7890  ' } })
-    fireEvent.change(screen.getByLabelText('AI request timeout'), { target: { value: '180' } })
+    const timeoutInput = screen.getByLabelText('AI request timeout')
+    expect(timeoutInput).toHaveAttribute('type', 'number')
+    expect(screen.queryByRole('slider', { name: 'AI request timeout' })).not.toBeInTheDocument()
+
+    fireEvent.change(timeoutInput, { target: { value: '180' } })
 
     await act(async () => {
       fireEvent.click(saveButton)
@@ -358,6 +362,31 @@ describe('Settings > General tab', () => {
         url: 'http://127.0.0.1:7890',
       },
     })
+    expect(useUIStore.getState().toasts[useUIStore.getState().toasts.length - 1]).toMatchObject({
+      type: 'success',
+      message: 'Network settings saved.',
+    })
+  })
+
+  it('validates typed provider network timeout and supports precise step controls', () => {
+    render(<Settings />)
+
+    fireEvent.click(screen.getByText('General'))
+    const timeoutInput = screen.getByLabelText('AI request timeout')
+    const saveButton = screen.getAllByRole('button', { name: 'Save' })[0]!
+
+    fireEvent.change(timeoutInput, { target: { value: '700' } })
+    expect(screen.getByText('Enter a whole number from 5 to 600 seconds.')).toBeInTheDocument()
+    expect(saveButton).toBeDisabled()
+
+    fireEvent.change(timeoutInput, { target: { value: '90' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Increase by 30 seconds' }))
+    expect(timeoutInput).toHaveValue(120)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Decrease by 30 seconds' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Decrease by 30 seconds' }))
+    expect(timeoutInput).toHaveValue(60)
+    expect(saveButton).not.toBeDisabled()
   })
 
   it('keeps data storage at the bottom of General settings', () => {

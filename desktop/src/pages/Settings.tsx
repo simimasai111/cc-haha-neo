@@ -52,6 +52,10 @@ import {
 } from '../lib/providerSettingsJson'
 import { copyTextToClipboard } from '../components/chat/clipboard'
 
+const NETWORK_TIMEOUT_MIN_SECONDS = 5
+const NETWORK_TIMEOUT_MAX_SECONDS = 600
+const NETWORK_TIMEOUT_STEP_SECONDS = 30
+
 function buildH5LaunchUrl(baseUrl: string | null, token: string | null): string | null {
   if (!baseUrl) return null
 
@@ -1444,6 +1448,7 @@ function GeneralSettings() {
   const t = useTranslation()
   const [webSearchDraft, setWebSearchDraft] = useState(webSearch)
   const [networkDraft, setNetworkDraft] = useState(network)
+  const [networkTimeoutInput, setNetworkTimeoutInput] = useState(String(Math.round(network.aiRequestTimeoutMs / 1000)))
   const [networkSaveError, setNetworkSaveError] = useState<string | null>(null)
   const [isSavingNetwork, setIsSavingNetwork] = useState(false)
   const [notificationPermission, setNotificationPermission] = useState<DesktopNotificationPermission>('default')
@@ -1457,6 +1462,7 @@ function GeneralSettings() {
   const [uiZoomDraft, setUiZoomDraft] = useState(uiZoom)
   const [isUiZoomDragging, setIsUiZoomDragging] = useState(false)
   const isUiZoomDraggingRef = useRef(false)
+  const addToast = useUIStore((s) => s.addToast)
   const webSearchDirty = JSON.stringify(webSearchDraft) !== JSON.stringify(webSearch)
   const uiZoomPercent = Math.round(uiZoomDraft * 100)
   const uiZoomRangeProgress = `${Math.round(((uiZoomDraft - UI_ZOOM_MIN) / (UI_ZOOM_MAX - UI_ZOOM_MIN)) * 1000) / 10}%`
@@ -1470,6 +1476,7 @@ function GeneralSettings() {
 
   useEffect(() => {
     setNetworkDraft(network)
+    setNetworkTimeoutInput(String(Math.round(network.aiRequestTimeoutMs / 1000)))
     setNetworkSaveError(null)
   }, [network])
 
@@ -1624,14 +1631,47 @@ function GeneralSettings() {
         ? t('settings.general.networkProxyUrlInvalid')
         : null
   const timeoutSeconds = Math.round(networkDraft.aiRequestTimeoutMs / 1000)
+  const parsedNetworkTimeoutSeconds = (() => {
+    const trimmed = networkTimeoutInput.trim()
+    if (!/^\d+$/.test(trimmed)) return null
+    const seconds = Number(trimmed)
+    if (!Number.isFinite(seconds) || seconds < NETWORK_TIMEOUT_MIN_SECONDS || seconds > NETWORK_TIMEOUT_MAX_SECONDS) return null
+    return seconds
+  })()
+  const networkTimeoutError =
+    networkTimeoutInput.trim().length === 0
+      ? t('settings.general.networkTimeoutRequired')
+      : parsedNetworkTimeoutSeconds === null
+        ? t('settings.general.networkTimeoutRange', {
+            min: String(NETWORK_TIMEOUT_MIN_SECONDS),
+            max: String(NETWORK_TIMEOUT_MAX_SECONDS),
+          })
+        : null
   const networkDirty =
     networkDraft.aiRequestTimeoutMs !== network.aiRequestTimeoutMs ||
     networkDraft.proxy.mode !== network.proxy.mode ||
     networkDraft.proxy.url.trim() !== network.proxy.url.trim()
 
+  const setNetworkTimeoutSeconds = (seconds: number) => {
+    const nextSeconds = Math.min(Math.max(Math.round(seconds), NETWORK_TIMEOUT_MIN_SECONDS), NETWORK_TIMEOUT_MAX_SECONDS)
+    setNetworkTimeoutInput(String(nextSeconds))
+    setNetworkDraft((current) => ({
+      ...current,
+      aiRequestTimeoutMs: nextSeconds * 1000,
+    }))
+    setNetworkSaveError(null)
+  }
+
   const saveNetworkSettings = async () => {
     if (networkProxyError) {
       setNetworkSaveError(networkProxyError)
+      return
+    }
+    if (networkTimeoutError || parsedNetworkTimeoutSeconds === null) {
+      setNetworkSaveError(networkTimeoutError ?? t('settings.general.networkTimeoutRange', {
+        min: String(NETWORK_TIMEOUT_MIN_SECONDS),
+        max: String(NETWORK_TIMEOUT_MAX_SECONDS),
+      }))
       return
     }
 
@@ -1639,11 +1679,15 @@ function GeneralSettings() {
     setNetworkSaveError(null)
     try {
       await setNetwork({
-        aiRequestTimeoutMs: networkDraft.aiRequestTimeoutMs,
+        aiRequestTimeoutMs: parsedNetworkTimeoutSeconds * 1000,
         proxy: {
           mode: networkDraft.proxy.mode,
           url: networkProxyUrl,
         },
+      })
+      addToast({
+        type: 'success',
+        message: t('settings.general.networkSaved'),
       })
     } catch (error) {
       setNetworkSaveError(error instanceof Error ? error.message : String(error))
@@ -2047,26 +2091,67 @@ function GeneralSettings() {
                 {t('settings.general.networkTimeoutValue', { seconds: String(timeoutSeconds) })}
               </span>
             </div>
-            <input
-              id="network-timeout-seconds"
-              type="range"
-              min={5}
-              max={600}
-              step={5}
-              value={timeoutSeconds}
-              aria-label={t('settings.general.networkTimeout')}
-              onChange={(event) => {
-                const seconds = Number(event.currentTarget.value)
-                setNetworkDraft((current) => ({
-                  ...current,
-                  aiRequestTimeoutMs: seconds * 1000,
-                }))
-                setNetworkSaveError(null)
-              }}
-              className="settings-zoom-range w-full"
-            />
-            <p className="mt-2 text-xs leading-5 text-[var(--color-text-tertiary)]">
-              {t('settings.general.networkTimeoutHint')}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-10 w-10 px-0"
+                aria-label={t('settings.general.networkTimeoutDecrease')}
+                onClick={() => setNetworkTimeoutSeconds((parsedNetworkTimeoutSeconds ?? timeoutSeconds) - NETWORK_TIMEOUT_STEP_SECONDS)}
+              >
+                -30
+              </Button>
+              <div className="relative min-w-0 flex-1">
+                <input
+                  id="network-timeout-seconds"
+                  type="number"
+                  min={NETWORK_TIMEOUT_MIN_SECONDS}
+                  max={NETWORK_TIMEOUT_MAX_SECONDS}
+                  step={1}
+                  inputMode="numeric"
+                  value={networkTimeoutInput}
+                  aria-invalid={networkTimeoutError ? true : undefined}
+                  aria-describedby="network-timeout-help"
+                  onChange={(event) => {
+                    const nextValue = event.currentTarget.value
+                    if (!/^\d*$/.test(nextValue)) return
+                    setNetworkTimeoutInput(nextValue)
+                    const seconds = Number(nextValue)
+                    if (nextValue.length > 0 && seconds >= NETWORK_TIMEOUT_MIN_SECONDS && seconds <= NETWORK_TIMEOUT_MAX_SECONDS) {
+                      setNetworkDraft((current) => ({
+                        ...current,
+                        aiRequestTimeoutMs: seconds * 1000,
+                      }))
+                    }
+                    setNetworkSaveError(null)
+                  }}
+                  className={`h-10 w-full rounded-[var(--radius-md)] border bg-[var(--color-surface)] px-3 pr-12 text-sm text-[var(--color-text-primary)] outline-none transition-colors duration-150 placeholder:text-[var(--color-text-tertiary)] ${
+                    networkTimeoutError
+                      ? 'border-[var(--color-error)] focus:shadow-[var(--shadow-error-ring)]'
+                      : 'border-[var(--color-border)] focus:border-[var(--color-border-focus)] focus:shadow-[var(--shadow-focus-ring)]'
+                  }`}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--color-text-tertiary)]">
+                  {t('settings.general.networkTimeoutUnit')}
+                </span>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-10 w-10 px-0"
+                aria-label={t('settings.general.networkTimeoutIncrease')}
+                onClick={() => setNetworkTimeoutSeconds((parsedNetworkTimeoutSeconds ?? timeoutSeconds) + NETWORK_TIMEOUT_STEP_SECONDS)}
+              >
+                +30
+              </Button>
+            </div>
+            <p
+              id="network-timeout-help"
+              className={`mt-2 text-xs leading-5 ${networkTimeoutError ? 'text-[var(--color-error)]' : 'text-[var(--color-text-tertiary)]'}`}
+            >
+              {networkTimeoutError ?? t('settings.general.networkTimeoutHint')}
             </p>
           </div>
 
@@ -2078,7 +2163,7 @@ function GeneralSettings() {
               size="sm"
               variant="secondary"
               className="min-w-[72px] px-4 whitespace-nowrap"
-              disabled={!networkDirty || !!networkProxyError || isSavingNetwork}
+              disabled={!networkDirty || !!networkProxyError || !!networkTimeoutError || isSavingNetwork}
               loading={isSavingNetwork}
               onClick={() => void saveNetworkSettings()}
             >
