@@ -244,6 +244,35 @@ const TASK_NOTIFICATION_BLOCK_RE = /<task-notification>\s*[\s\S]*?<\/task-notifi
 // ============================================================================
 
 export class SessionService {
+  private readonly sessionListCacheTtlMs = 5_000
+  private readonly sessionListCache = new Map<string, {
+    expiresAt: number
+    result: { sessions: SessionListItem[]; total: number }
+  }>()
+
+  private sessionListCacheKey(options?: {
+    project?: string
+    limit?: number
+    offset?: number
+  }): string {
+    return JSON.stringify({
+      project: options?.project ?? null,
+      limit: options?.limit ?? 50,
+      offset: options?.offset ?? 0,
+    })
+  }
+
+  private cloneSessionListResult(result: { sessions: SessionListItem[]; total: number }): { sessions: SessionListItem[]; total: number } {
+    return {
+      total: result.total,
+      sessions: result.sessions.map((session) => ({ ...session })),
+    }
+  }
+
+  private invalidateSessionListCache(): void {
+    this.sessionListCache.clear()
+  }
+
   // --------------------------------------------------------------------------
   // Config helpers
   // --------------------------------------------------------------------------
@@ -1310,6 +1339,12 @@ export class SessionService {
     limit?: number
     offset?: number
   }): Promise<{ sessions: SessionListItem[]; total: number }> {
+    const cacheKey = this.sessionListCacheKey(options)
+    const cached = this.sessionListCache.get(cacheKey)
+    if (cached && cached.expiresAt > Date.now()) {
+      return this.cloneSessionListResult(cached.result)
+    }
+
     const sessionFiles = await this.discoverSessionFiles(options?.project)
     const filesWithStats = (await Promise.all(sessionFiles.map(async (sessionFile) => {
       try {
@@ -1372,7 +1407,12 @@ export class SessionService {
       }
     }))).filter((item): item is SessionListItem => item !== null)
 
-    return { sessions: items, total }
+    const result = { sessions: items, total }
+    this.sessionListCache.set(cacheKey, {
+      expiresAt: Date.now() + this.sessionListCacheTtlMs,
+      result: this.cloneSessionListResult(result),
+    })
+    return result
   }
 
   /**
@@ -1502,6 +1542,7 @@ export class SessionService {
     }
 
     await fs.writeFile(filePath, JSON.stringify(initialEntry) + '\n' + JSON.stringify(metaEntry) + '\n', 'utf-8')
+    this.invalidateSessionListCache()
 
     return { sessionId, workDir: absWorkDir }
   }
@@ -1516,6 +1557,7 @@ export class SessionService {
     }
 
     await fs.unlink(found.filePath)
+    this.invalidateSessionListCache()
   }
 
   async deleteSessions(sessionIds: string[]): Promise<DeleteSessionsResult> {
@@ -1571,6 +1613,7 @@ export class SessionService {
     }
 
     await this.appendJsonlEntry(found.filePath, entry)
+    this.invalidateSessionListCache()
   }
 
   /**
@@ -1585,6 +1628,7 @@ export class SessionService {
       aiTitle: title,
       timestamp: new Date().toISOString(),
     })
+    this.invalidateSessionListCache()
   }
 
   async getCustomTitle(sessionId: string): Promise<string | null> {
@@ -1663,6 +1707,7 @@ export class SessionService {
     const found = await this.findSessionFile(sessionId)
     if (!found) return
     await fs.unlink(found.filePath)
+    this.invalidateSessionListCache()
   }
 
   async clearSessionTranscript(sessionId: string, fallbackWorkDir?: string): Promise<void> {
@@ -1710,6 +1755,7 @@ export class SessionService {
       `${JSON.stringify(initialEntry)}\n${JSON.stringify(metaEntry)}\n`,
       'utf-8',
     )
+    this.invalidateSessionListCache()
   }
 
   async appendSessionMetadata(
@@ -1758,6 +1804,7 @@ export class SessionService {
         timestamp: new Date().toISOString(),
       })
     }
+    this.invalidateSessionListCache()
   }
 
   async deletePlaceholderSessionFiles(
@@ -1789,6 +1836,7 @@ export class SessionService {
       await fs.rm(filePath, { force: true })
       removed += 1
     }
+    if (removed > 0) this.invalidateSessionListCache()
     return removed
   }
 
@@ -1842,6 +1890,7 @@ export class SessionService {
         ? filteredEntries.map((entry) => JSON.stringify(entry)).join('\n') + '\n'
         : ''
     await fs.writeFile(found.filePath, content, 'utf-8')
+    this.invalidateSessionListCache()
 
     return {
       removedCount: removedMessageIds.length,

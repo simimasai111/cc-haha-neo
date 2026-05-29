@@ -569,6 +569,50 @@ describe('SessionService', () => {
     expect(readCount).toBe(3)
   })
 
+  it('should reuse cached list metadata for repeated requests', async () => {
+    for (let i = 0; i < 5; i++) {
+      const id = `2000000${i.toString(16)}-bbbb-cccc-dddd-eeeeeeeeeeee`
+      const filePath = await writeSessionFile('-tmp-cached-sessions', id, [
+        makeSnapshotEntry(),
+        makeUserEntry(`Cached message ${i}`),
+      ])
+      const mtime = new Date(Date.now() - i * 1000)
+      await fs.utimes(filePath, mtime, mtime)
+    }
+
+    const serviceWithSpy = service as unknown as {
+      readJsonlFile: (...args: unknown[]) => Promise<unknown>
+    }
+    const originalReadJsonlFile = serviceWithSpy.readJsonlFile.bind(service)
+    let readCount = 0
+    serviceWithSpy.readJsonlFile = async (...args) => {
+      readCount += 1
+      return originalReadJsonlFile(...args)
+    }
+
+    const first = await service.listSessions({ limit: 3, offset: 0 })
+    const second = await service.listSessions({ limit: 3, offset: 0 })
+
+    expect(first.sessions.map((session) => session.id)).toEqual(second.sessions.map((session) => session.id))
+    expect(readCount).toBe(3)
+  })
+
+  it('should invalidate cached list metadata after writes', async () => {
+    const sessionId = '30000000-bbbb-cccc-dddd-eeeeeeeeeeee'
+    await writeSessionFile('-tmp-cache-invalidation', sessionId, [
+      makeSnapshotEntry(),
+      makeUserEntry('Original title'),
+    ])
+
+    const first = await service.listSessions({ limit: 10, offset: 0 })
+    expect(first.sessions[0]!.title).toBe('Original title')
+
+    await service.renameSession(sessionId, 'Renamed title')
+    const second = await service.listSessions({ limit: 10, offset: 0 })
+
+    expect(second.sessions[0]!.title).toBe('Renamed title')
+  })
+
   it('should filter sessions by project', async () => {
     const id1 = 'aaaaaaaa-1111-cccc-dddd-eeeeeeeeeeee'
     const id2 = 'aaaaaaaa-2222-cccc-dddd-eeeeeeeeeeee'
