@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { sessionsApi, type SessionTurnCheckpoint } from '../../api/sessions'
 import { useTranslation, type TranslationKey } from '../../i18n'
 import { WorkspaceDiffSurface } from '../workspace/WorkspaceCodeSurface'
@@ -34,6 +34,8 @@ type ChangedFileEntry = {
   displayPath: string
 }
 
+const COLLAPSED_COUNT = 5
+
 export function CurrentTurnChangeCard({
   sessionId,
   targetUserMessageId,
@@ -48,6 +50,7 @@ export function CurrentTurnChangeCard({
   const [expandedPath, setExpandedPath] = useState<string | null>(null)
   const [diffByPath, setDiffByPath] = useState<Record<string, DiffPreviewState>>({})
   const [openWith, setOpenWith] = useState<{ items: OpenWithItem[]; anchor: DOMRect } | null>(null)
+  const [showAllFiles, setShowAllFiles] = useState(false)
 
   const files = useMemo<ChangedFileEntry[]>(
     () => checkpoint.code.filesChanged.map((filePath) => ({
@@ -56,6 +59,11 @@ export function CurrentTurnChangeCard({
     })),
     [checkpoint.code.filesChanged, workDir],
   )
+
+  const canCollapse = files.length > COLLAPSED_COUNT
+  const visibleFiles = canCollapse && !showAllFiles
+    ? files.slice(0, COLLAPSED_COUNT)
+    : files
 
   const toggleDiff = useCallback((fileEntry: ChangedFileEntry) => {
     const nextExpandedPath = expandedPath === fileEntry.apiPath ? null : fileEntry.apiPath
@@ -171,7 +179,7 @@ export function CurrentTurnChangeCard({
       </div>
 
       <div className="divide-y divide-[var(--color-border)]">
-        {files.map((fileEntry) => {
+        {visibleFiles.map((fileEntry) => {
           const isExpanded = expandedPath === fileEntry.apiPath
           const diffState = diffByPath[fileEntry.apiPath]
           const fileName = fileEntry.displayPath.split('/').pop() || fileEntry.displayPath
@@ -237,6 +245,26 @@ export function CurrentTurnChangeCard({
           )
         })}
       </div>
+
+      {canCollapse && (
+        <button
+          type="button"
+          onClick={() => setShowAllFiles((current) => !current)}
+          className="flex w-full items-center justify-center gap-1 border-t border-[var(--color-border)] px-4 py-2 text-xs text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-brand)]/35"
+        >
+          {showAllFiles ? (
+            <>
+              {t('chat.turnChangesShowLess')}
+              <ChevronUp size={14} strokeWidth={1.9} />
+            </>
+          ) : (
+            <>
+              {t('chat.turnChangesShowMore', { count: String(files.length - COLLAPSED_COUNT) })}
+              <ChevronDown size={14} strokeWidth={1.9} />
+            </>
+          )}
+        </button>
+      )}
 
       {error && (
         <div className="border-t border-[var(--color-error)]/20 bg-[var(--color-error-container)]/18 px-4 py-3 text-xs text-[var(--color-error)]">

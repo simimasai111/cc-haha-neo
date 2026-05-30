@@ -1213,6 +1213,8 @@ export const en = {
   'chat.turnChangesHideDiffAria': 'Hide diff for {path}',
   'chat.turnChangesDiffLoading': 'Loading diff...',
   'chat.turnChangesDiffUnavailable': 'Diff unavailable.',
+  'chat.turnChangesShowMore': 'Show {count} more files',
+  'chat.turnChangesShowLess': 'Show less',
 
   // ─── Streaming Indicator ──────────────────────────────────────
   'streaming.thinking': 'Thinking',

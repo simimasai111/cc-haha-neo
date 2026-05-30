@@ -1215,6 +1215,8 @@ export const zh: Record<TranslationKey, string> = {
   'chat.turnChangesHideDiffAria': '收起 {path} 的 diff',
   'chat.turnChangesDiffLoading': '正在加载 diff...',
   'chat.turnChangesDiffUnavailable': 'Diff 不可用。',
+  'chat.turnChangesShowMore': '再显示 {count} 个文件',
+  'chat.turnChangesShowLess': '收起',
 
   // ─── Streaming Indicator ──────────────────────────────────────
   'streaming.thinking': '思考中',

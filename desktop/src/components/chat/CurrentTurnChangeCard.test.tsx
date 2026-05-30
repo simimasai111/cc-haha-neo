@@ -251,3 +251,49 @@ describe('CurrentTurnChangeCard – open-with buttons', () => {
     })
   })
 })
+
+describe('CurrentTurnChangeCard – collapse long file lists', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ensureTargetsMock.mockResolvedValue(undefined)
+    openPreviewSpy.mockResolvedValue(undefined)
+  })
+
+  function makeFiles(count: number): string[] {
+    return Array.from({ length: count }, (_, i) => `/w/proj/src/file${i + 1}.ts`)
+  }
+
+  it('does NOT render a show-more toggle with ≤5 files', () => {
+    renderCard(makeFiles(5))
+    expect(screen.getAllByRole('button', { name: /turnChangesShowDiffAria/ })).toHaveLength(5)
+    expect(screen.queryByText('chat.turnChangesShowMore')).not.toBeInTheDocument()
+    expect(screen.queryByText('chat.turnChangesShowLess')).not.toBeInTheDocument()
+  })
+
+  it('with 8 files shows only 5 rows + a "show more" toggle (remaining = 3)', () => {
+    renderCard(makeFiles(8))
+    // only the first 5 diff-toggle rows are rendered
+    expect(screen.getAllByRole('button', { name: /turnChangesShowDiffAria/ })).toHaveLength(5)
+    // the show-more toggle is present (identity-mock key). The real key carries the
+    // remaining count via '{count}'; with the placeholder-bearing real string this
+    // renders as "再显示 3 个文件" (8 - COLLAPSED_COUNT(5) = 3).
+    expect(screen.getByText('chat.turnChangesShowMore')).toBeInTheDocument()
+    // …and it is the only toggle (no "show less" while collapsed)
+    expect(screen.queryByText('chat.turnChangesShowLess')).not.toBeInTheDocument()
+  })
+
+  it('clicking "show more" reveals all 8 rows and shows "show less"; clicking again re-collapses', () => {
+    renderCard(makeFiles(8))
+    const showMore = screen.getByText('chat.turnChangesShowMore')
+
+    fireEvent.click(showMore)
+    expect(screen.getAllByRole('button', { name: /turnChangesShowDiffAria/ })).toHaveLength(8)
+    const showLess = screen.getByText('chat.turnChangesShowLess')
+    expect(showLess).toBeInTheDocument()
+    expect(screen.queryByText('chat.turnChangesShowMore')).not.toBeInTheDocument()
+
+    fireEvent.click(showLess)
+    expect(screen.getAllByRole('button', { name: /turnChangesShowDiffAria/ })).toHaveLength(5)
+    expect(screen.getByText('chat.turnChangesShowMore')).toBeInTheDocument()
+  })
+})
