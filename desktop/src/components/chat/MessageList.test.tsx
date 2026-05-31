@@ -156,6 +156,11 @@ describe('MessageList nested tool calls', () => {
     expect(container.querySelectorAll('[data-message-shell="assistant"]').length).toBeLessThan(220)
     expect(container.querySelector('[data-virtual-message-item]')).not.toBeNull()
     expect(container.querySelector('[data-virtual-spacer="top"]')).not.toBeNull()
+    // Virtualized window items must NOT get content-visibility: it zeroes their
+    // ResizeObserver-measured height in the virtualizer (the regression this guards).
+    for (const item of container.querySelectorAll('[data-virtual-message-item]')) {
+      expect((item as HTMLElement).className).not.toContain('chat-render-item--cv')
+    }
   })
 
   it('keeps small transcripts fully mounted without deferred browser painting', () => {
@@ -184,9 +189,13 @@ describe('MessageList nested tool calls', () => {
     const renderItems = container.querySelectorAll('.chat-render-item')
 
     expect(renderItems).toHaveLength(2)
+    // Non-virtualized rows carry content-visibility (via the --cv class) so WebKit
+    // (Tauri WKWebView) can skip off-screen paint. Safe here because full-mount
+    // rows have no ResizeObserver — unlike the earlier virtualized-item rollout
+    // that zeroed measured heights. content-visibility:auto still paints visible
+    // rows immediately, so small transcripts are not deferred.
     for (const item of renderItems) {
-      expect(item.className).not.toContain('content-visibility')
-      expect(item.className).not.toContain('contain-intrinsic-size')
+      expect(item.className).toContain('chat-render-item--cv')
     }
     expect(container.querySelector('[data-virtual-message-item]')).toBeNull()
   })

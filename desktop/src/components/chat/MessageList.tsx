@@ -1841,7 +1841,7 @@ export function MessageList({ sessionId, compact = false }: MessageListProps = {
                 {content}
               </MeasuredRenderItem>
             ) : (
-              <div key={itemKey} className={CHAT_RENDER_ITEM_CLASS}>
+              <div key={itemKey} className={`${CHAT_RENDER_ITEM_CLASS} chat-render-item--cv`}>
                 {content}
               </div>
             )
