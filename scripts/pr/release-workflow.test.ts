@@ -190,11 +190,9 @@ describe('release desktop workflow', () => {
       `Claude-Code-Haha-${version}-mac-x64.dmg.blockmap`,
       `Claude-Code-Haha-${version}-mac-x64.zip`,
       `Claude-Code-Haha-${version}-mac-x64.zip.blockmap`,
-      `Claude-Code-Haha-${version}-linux-x64.AppImage`,
-      `Claude-Code-Haha-${version}-linux-x64.AppImage.blockmap`,
-      `Claude-Code-Haha-${version}-linux-x64.deb`,
+      `Claude-Code-Haha-${version}-linux-x86_64.AppImage`,
+      `Claude-Code-Haha-${version}-linux-amd64.deb`,
       `Claude-Code-Haha-${version}-linux-arm64.AppImage`,
-      `Claude-Code-Haha-${version}-linux-arm64.AppImage.blockmap`,
       `Claude-Code-Haha-${version}-linux-arm64.deb`,
       `Claude-Code-Haha-${version}-win-x64.exe`,
       `Claude-Code-Haha-${version}-win-x64.exe.blockmap`,
@@ -224,6 +222,7 @@ describe('release desktop workflow', () => {
     expect(expectedReleaseAssets.filter((name) => name.endsWith('.AppImage')).length).toBe(2)
     expect(expectedReleaseAssets.filter((name) => name.endsWith('.deb')).length).toBe(2)
     expect(expectedReleaseAssets.filter((name) => name.endsWith('.exe')).length).toBe(1)
+    expect(expectedReleaseAssets.some((name) => name.includes('-linux-') && name.endsWith('.blockmap'))).toBe(false)
     for (const platform of ['mac', 'linux', 'win']) {
       expect(expectedReleaseAssets.some((name) => name.includes(`-${platform}-`))).toBe(true)
     }
@@ -244,8 +243,8 @@ describe('release desktop workflow', () => {
       'Claude-Code-Haha-${APP_VERSION}-mac-arm64.zip',
       'Claude-Code-Haha-${APP_VERSION}-mac-x64.dmg',
       'Claude-Code-Haha-${APP_VERSION}-mac-x64.zip',
-      'Claude-Code-Haha-${APP_VERSION}-linux-x64.AppImage',
-      'Claude-Code-Haha-${APP_VERSION}-linux-x64.deb',
+      'Claude-Code-Haha-${APP_VERSION}-linux-x86_64.AppImage',
+      'Claude-Code-Haha-${APP_VERSION}-linux-amd64.deb',
       'Claude-Code-Haha-${APP_VERSION}-linux-arm64.AppImage',
       'Claude-Code-Haha-${APP_VERSION}-linux-arm64.deb',
       'Claude-Code-Haha-${APP_VERSION}-win-x64.exe',
@@ -259,6 +258,9 @@ describe('release desktop workflow', () => {
       expect(publishJob).toContain(`artifacts/update-metadata-standard/$file`)
       expect(publishJob).toContain(metadata)
     }
+    expect(buildJob).not.toContain('linux-x64.AppImage.blockmap')
+    expect(buildJob).not.toContain('linux-arm64.AppImage.blockmap')
+    expect(buildJob).toContain('latest-linux-arm64.yml')
     expect(buildJob).toContain('Missing release assets for %s')
     expect(publishJob).toContain('Missing complete release assets')
     expect(publishJob).toContain('Missing standard update metadata')

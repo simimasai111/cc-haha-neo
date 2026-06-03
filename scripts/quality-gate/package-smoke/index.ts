@@ -283,6 +283,22 @@ function addBlockmapChecks(
   }
 }
 
+function findLinuxUnpackedDir(artifactsDir: string) {
+  const unpackedDirs = findMatches(
+    artifactsDir,
+    (candidate) => /\/linux(?:-[a-z0-9_]+)?-unpacked$/.test(normalizePath(candidate)),
+    { directoriesOnly: true },
+  )
+
+  return unpackedDirs.sort((left, right) => {
+    const leftName = normalizePath(left).split('/').pop()
+    const rightName = normalizePath(right).split('/').pop()
+    if (leftName === 'linux-unpacked') return -1
+    if (rightName === 'linux-unpacked') return 1
+    return left.localeCompare(right)
+  })[0]
+}
+
 function firstDiagnosticLine(output: string) {
   return output
     .split(/\r?\n/)
@@ -614,23 +630,24 @@ function inspectLinuxArtifacts(rootDir: string, report: PackageSmokeReport) {
     report.artifactsDir,
     (candidate) => candidate.endsWith('.AppImage') || candidate.endsWith('.deb'),
   )
-  const unpackedDir = findMatches(report.artifactsDir, (candidate) => normalizePath(candidate).endsWith('/linux-unpacked'), { directoriesOnly: true })[0]
-  const electronDir = join(report.artifactsDir, 'electron')
+  const unpackedDir = findLinuxUnpackedDir(report.artifactsDir)
   const updateMetadata = findMatches(report.artifactsDir, (candidate) => /latest-linux(?:-[a-z0-9]+)?\.yml$/.test(candidate))
+  const appImageBlockmaps = findMatches(report.artifactsDir, (candidate) => candidate.endsWith('.AppImage.blockmap'))
   const releaseMode = report.packageKind === 'release' || (report.packageKind === 'auto' && (packagedArtifacts.length > 0 || updateMetadata.length > 0))
 
   report.packagedArtifacts.push(...packagedArtifacts.map((candidate) => ({
     label: candidate.endsWith('.deb') ? 'Linux deb package' : 'Linux AppImage',
     path: toRelative(rootDir, candidate),
   })))
+  report.optionalArtifacts.push(...appImageBlockmaps.map((candidate) => ({
+    label: 'Linux AppImage blockmap',
+    path: toRelative(rootDir, candidate),
+  })))
   if (releaseMode) {
     addUpdateMetadataChecks(report, rootDir, updateMetadata)
-    addBlockmapChecks(
-      report,
-      rootDir,
-      'Linux AppImage update artifact',
-      packagedArtifacts.filter(candidate => candidate.endsWith('.AppImage')),
-    )
+    if (appImageBlockmaps.length === 0 && packagedArtifacts.some(candidate => candidate.endsWith('.AppImage'))) {
+      report.notes.push('Linux AppImage blockmaps were not required because Electron Builder did not emit them for this artifact set.')
+    }
   }
 
   if (releaseMode) {
@@ -639,12 +656,12 @@ function inspectLinuxArtifacts(rootDir: string, report: PackageSmokeReport) {
       rootDir,
       'linux packaged artifact (.AppImage or .deb)',
       packagedArtifacts,
-      electronDir,
+      report.artifactsDir,
     )
   } else if (!unpackedDir) {
     report.missingChecks.push({
       label: 'linux packaged artifact (.AppImage or .deb)',
-      path: toRelative(rootDir, electronDir),
+      path: toRelative(rootDir, report.artifactsDir),
     })
   } else {
     report.notes.push('No .AppImage or .deb was found; treating linux-unpacked as a directory-only development package.')
@@ -680,8 +697,8 @@ function inspectLinuxArtifacts(rootDir: string, report: PackageSmokeReport) {
   } else {
     if (releaseMode) {
       report.missingChecks.push({
-        label: 'Linux unpacked directory (linux-unpacked) for static resource inspection',
-        path: toRelative(rootDir, join(electronDir, 'linux-unpacked')),
+        label: 'Linux unpacked directory (linux-unpacked or linux-*-unpacked) for static resource inspection',
+        path: toRelative(rootDir, join(report.artifactsDir, 'linux-unpacked')),
       })
     } else {
       report.notes.push('linux-unpacked was not found, so this check only verified packaged artifact presence.')
@@ -692,7 +709,7 @@ function inspectLinuxArtifacts(rootDir: string, report: PackageSmokeReport) {
   if (releaseMode && updateMetadata.length === 0) {
     report.missingChecks.push({
       label: 'Linux update metadata (latest-linux*.yml)',
-      path: toRelative(rootDir, join(electronDir, 'latest-linux.yml')),
+      path: toRelative(rootDir, join(report.artifactsDir, 'latest-linux.yml')),
     })
   }
   if (report.hostPlatform !== 'linux') {

@@ -230,18 +230,16 @@ jobs:
               ;;
             Linux-x64)
               expected=(
-                "Claude-Code-Haha-${APP_VERSION}-linux-x64.AppImage"
-                "Claude-Code-Haha-${APP_VERSION}-linux-x64.AppImage.blockmap"
-                "Claude-Code-Haha-${APP_VERSION}-linux-x64.deb"
+                "Claude-Code-Haha-${APP_VERSION}-linux-x86_64.AppImage"
+                "Claude-Code-Haha-${APP_VERSION}-linux-amd64.deb"
                 "latest-linux.yml"
               )
               ;;
             Linux-ARM64)
               expected=(
                 "Claude-Code-Haha-${APP_VERSION}-linux-arm64.AppImage"
-                "Claude-Code-Haha-${APP_VERSION}-linux-arm64.AppImage.blockmap"
                 "Claude-Code-Haha-${APP_VERSION}-linux-arm64.deb"
-                "latest-linux.yml"
+                "latest-linux-arm64.yml"
               )
               ;;
             Windows-x64)
@@ -366,11 +364,9 @@ jobs:
             "Claude-Code-Haha-${APP_VERSION}-mac-x64.dmg.blockmap"
             "Claude-Code-Haha-${APP_VERSION}-mac-x64.zip"
             "Claude-Code-Haha-${APP_VERSION}-mac-x64.zip.blockmap"
-            "Claude-Code-Haha-${APP_VERSION}-linux-x64.AppImage"
-            "Claude-Code-Haha-${APP_VERSION}-linux-x64.AppImage.blockmap"
-            "Claude-Code-Haha-${APP_VERSION}-linux-x64.deb"
+            "Claude-Code-Haha-${APP_VERSION}-linux-x86_64.AppImage"
+            "Claude-Code-Haha-${APP_VERSION}-linux-amd64.deb"
             "Claude-Code-Haha-${APP_VERSION}-linux-arm64.AppImage"
-            "Claude-Code-Haha-${APP_VERSION}-linux-arm64.AppImage.blockmap"
             "Claude-Code-Haha-${APP_VERSION}-linux-arm64.deb"
             "Claude-Code-Haha-${APP_VERSION}-win-x64.exe"
             "Claude-Code-Haha-${APP_VERSION}-win-x64.exe.blockmap"
