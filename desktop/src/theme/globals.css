@@ -1280,6 +1280,53 @@ button, input, textarea, select, a, [role="button"] {
   background: var(--color-outline-a92);
 }
 
+.activity-summary-panel {
+  container-type: inline-size;
+}
+
+.activity-summary-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.activity-summary-metric-primary {
+  grid-column: auto;
+}
+
+.activity-summary-value {
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+@container (min-width: 360px) {
+  .activity-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .activity-summary-metric-primary {
+    grid-column: span 2;
+  }
+}
+
+@container (min-width: 620px) {
+  .activity-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .activity-summary-metric-primary {
+    grid-column: span 2;
+  }
+}
+
+@container (min-width: 860px) {
+  .activity-summary-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .activity-summary-metric-primary {
+    grid-column: auto;
+  }
+}
+
 .activity-heat-cell {
   position: relative;
   transform: translateZ(0);
