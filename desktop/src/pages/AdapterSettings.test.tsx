@@ -19,7 +19,10 @@ function renderAdapterSettings(
     isLoading: false,
     fetchConfig: vi.fn(async () => {}),
     updateConfig: vi.fn(async () => {}),
+    startWhatsAppLogin: vi.fn(async () => ({ message: 'ok', sessionKey: 'whatsapp-session' })),
+    pollWhatsAppLogin: vi.fn(async () => ({ connected: false })),
     unbindWechatAccount: vi.fn(async () => {}),
+    unbindWhatsAppAccount: vi.fn(async () => {}),
     unbindDingtalkBot: vi.fn(async () => {}),
     removePairedUser: vi.fn(async () => {}),
     beginDingtalkRegistration: vi.fn(async () => ({
@@ -113,5 +116,15 @@ describe('AdapterSettings account unbind confirmation', () => {
     await waitFor(() => {
       expect(unbindDingtalkBot).toHaveBeenCalledTimes(1)
     })
+  })
+
+  it('shows WhatsApp QR binding controls', () => {
+    renderAdapterSettings({})
+
+    fireEvent.click(screen.getByRole('tab', { name: 'WhatsApp' }))
+
+    expect(screen.getByText('WhatsApp is not bound')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Scan to Bind' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('e.g. 15551234567@s.whatsapp.net')).toBeInTheDocument()
   })
 })
