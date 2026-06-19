@@ -2,39 +2,54 @@
 layout: home
 
 hero:
-  name: Claude Code Haha
-  text: Locally Runnable Claude Code
-  tagline: Repaired from leaked source, supports any Anthropic-compatible API endpoint (MiniMax, OpenRouter, etc.)
+  name: cc-haha-neo
+  text: A More Open Claude Code
+  tagline: Native OpenAI-compatible API, MCP Marketplace, Usage Dashboard & Session Checkpoints
   image:
     src: /images/logo-horizontal.png
-    alt: Claude Code Haha
+    alt: cc-haha-neo
   actions:
     - theme: brand
       text: Quick Start
       link: /en/guide/quick-start
     - theme: alt
+      text: OpenAI-compatible API
+      link: /en/guide/openai-compat
+    - theme: alt
       text: GitHub
-      link: https://github.com/NanmiCoder/cc-haha
+      link: https://github.com/simimasai111/cc-haha-neo
 
 features:
-  - icon: "\U0001F5A5"
+  - icon: "🔌"
+    title: Native OpenAI-compatible API
+    details: Transparent Anthropic-to-OpenAI conversion at the fetch layer. Works with OpenAI, DeepSeek, OpenRouter, Ollama, Azure, and any compatible endpoint.
+    link: /en/guide/openai-compat
+  - icon: "🛒"
+    title: MCP Marketplace
+    details: Built-in registry of 12+ popular MCP servers including GitHub, Filesystem, Brave Search, PostgreSQL, and more.
+    link: /en/guide/haha-extras#mcp-marketplace
+  - icon: "📊"
+    title: Usage & Cost Dashboard
+    details: Terminal visualization plus standalone HTML reports for real-time cost, token, and duration insights.
+    link: /en/guide/haha-extras#usage--cost-dashboard
+  - icon: "🌿"
+    title: Session Version Control
+    details: Save, branch, list, and restore conversation checkpoints just like git.
+    link: /en/guide/haha-extras#session-version-control
+  - icon: "🖥"
     title: Full TUI Experience
     details: Ink terminal UI matching the official Claude Code interface, with --print headless mode
-  - icon: "\U0001F9E0"
+  - icon: "🧠"
     title: Memory System
     details: Cross-session persistent memory with auto-extraction, smart retrieval, and AutoDream consolidation
-  - icon: "\U0001F916"
+  - icon: "🤖"
     title: Multi-Agent System
     details: Agent orchestration, parallel tasks, Teams collaboration, Worktree isolation
-  - icon: "\U0001F9E9"
+  - icon: "🧩"
     title: Skills System
     details: Extensible capability plugins, custom workflows, conditional activation
-  - icon: "\U0001F4BB"
+  - icon: "🐍"
     title: Computer Use
     details: Desktop control — screenshots, mouse, and keyboard automation
     link: /en/features/computer-use
-  - icon: "\U0001F310"
-    title: Third-Party Models
-    details: Support for OpenAI, DeepSeek, Ollama, and any compatible model
-    link: /en/guide/third-party-models
 ---

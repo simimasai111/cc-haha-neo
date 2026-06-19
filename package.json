@@ -1,6 +1,7 @@
 {
-  "name": "claude-code-local",
+  "name": "cc-haha-neo",
   "version": "999.0.0-local",
+  "description": "A more open Claude Code fork with native OpenAI-compatible API, MCP marketplace, usage dashboard, and session checkpoints.",
   "private": true,
   "type": "module",
   "bin": {
