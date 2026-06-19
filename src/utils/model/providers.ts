@@ -7,6 +7,7 @@ export type APIProvider =
   | 'vertex'
   | 'foundry'
   | 'azureOpenAI'
+  | 'openaiCompat'
 
 export function getAPIProvider(): APIProvider {
   return isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK)
@@ -17,7 +18,9 @@ export function getAPIProvider(): APIProvider {
         ? 'foundry'
         : isEnvTruthy(process.env.CLAUDE_CODE_USE_AZURE_OPENAI)
           ? 'azureOpenAI'
-        : 'firstParty'
+          : process.env.OPENAI_COMPAT_API_KEY || process.env.OPENAI_API_KEY
+            ? 'openaiCompat'
+            : 'firstParty'
 }
 
 export function getAPIProviderForStatsig(): AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS {

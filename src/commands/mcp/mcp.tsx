@@ -2,6 +2,13 @@ import { c as _c } from "react/compiler-runtime";
 import React, { useEffect, useRef } from 'react';
 import { MCPSettings } from '../../components/mcp/index.js';
 import { MCPReconnect } from '../../components/mcp/MCPReconnect.js';
+import {
+  formatMarketDetail,
+  formatMarketList,
+  installMarketServer,
+  listMarketServers,
+  searchMarketServers,
+} from '../../services/mcp/market.js';
 import { useMcpToggleEnabled } from '../../services/mcp/MCPConnectionManager.js';
 import { useAppState } from '../../state/AppState.js';
 import type { LocalJSXCommandOnDone } from '../../types/command.js';
@@ -63,6 +70,47 @@ function _temp(s) {
 export async function call(onDone: LocalJSXCommandOnDone, _context: unknown, args?: string): Promise<React.ReactNode> {
   if (args) {
     const parts = args.trim().split(/\s+/);
+
+    // MCP Marketplace: /mcp market [list|search|install|info]
+    if (parts[0] === 'market') {
+      const subcommand = parts[1] ?? 'list';
+      const rest = parts.slice(2);
+      try {
+        if (subcommand === 'list') {
+          onDone(formatMarketList(listMarketServers()));
+        } else if (subcommand === 'search' && rest[0]) {
+          onDone(formatMarketList(searchMarketServers(rest.join(' '))));
+        } else if (subcommand === 'info' && rest[0]) {
+          const server = listMarketServers().find(
+            s => s.name.toLowerCase() === rest[0].toLowerCase(),
+          );
+          onDone(server ? formatMarketDetail(server) : `Server "${rest[0]}" not found in marketplace.`);
+        } else if (subcommand === 'install' && rest[0]) {
+          const name = rest[0];
+          const envPairs: Record<string, string> = {};
+          let scope: 'local' | 'user' | 'project' = 'local';
+          for (let i = 1; i < rest.length; i++) {
+            const arg = rest[i];
+            if (arg === '-s' || arg === '--scope') {
+              scope = rest[++i] as typeof scope;
+            } else if (arg === '-e' || arg === '--env') {
+              const pair = rest[++i];
+              const [k, ...v] = pair.split('=');
+              if (k) envPairs[k] = v.join('=');
+            }
+          }
+          const result = await installMarketServer(name, { scope, env: envPairs });
+          onDone(result);
+        } else {
+          onDone(
+            'Usage: /mcp market [list|search <query>|info <name>|install <name> [-s scope] [-e KEY=value]]',
+          );
+        }
+      } catch (err) {
+        onDone(`Error: ${(err as Error).message}`);
+      }
+      return null;
+    }
 
     // Allow /mcp no-redirect to bypass the redirect for testing
     if (parts[0] === 'no-redirect') {

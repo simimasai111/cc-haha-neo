@@ -29,6 +29,10 @@ import {
   shouldUseOpenAICodexAuth,
 } from '../openaiAuth/fetch.js'
 import { isOpenAIResponsesModel } from '../openaiAuth/models.js'
+import {
+  buildOpenAICompatFetch,
+  shouldUseOpenAICompat,
+} from '../openaiCompat/fetch.js'
 import { isDebugToStdErr, logForDebugging } from '../../utils/debug.js'
 import {
   getAWSRegion,
@@ -204,9 +208,13 @@ export async function getAnthropicClient({
     await configureApiKeyHeaders(defaultHeaders, getIsNonInteractiveSession())
   }
 
+  const useOpenAICompat = shouldUseOpenAICompat()
+
   const resolvedFetch = usingOpenAICodex
     ? buildOpenAICodexFetch(fetchOverride, source)
-    : buildFetch(fetchOverride, source)
+    : useOpenAICompat
+      ? buildOpenAICompatFetch(fetchOverride, source)
+      : buildFetch(fetchOverride, source)
 
   const ARGS = {
     defaultHeaders,

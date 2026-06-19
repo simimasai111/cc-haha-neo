@@ -17,6 +17,7 @@ import compact from './commands/compact/index.js'
 import config from './commands/config/index.js'
 import { context, contextNonInteractive } from './commands/context/index.js'
 import cost from './commands/cost/index.js'
+import dashboard from './commands/dashboard/index.js'
 import diff from './commands/diff/index.js'
 import ctx_viz from './commands/ctx_viz/index.js'
 import doctor from './commands/doctor/index.js'
@@ -148,6 +149,7 @@ import antTrace from './commands/ant-trace/index.js'
 import perfIssue from './commands/perf-issue/index.js'
 import sandboxToggle from './commands/sandbox-toggle/index.js'
 import chrome from './commands/chrome/index.js'
+import checkpoint from './commands/checkpoint/index.js'
 import stickers from './commands/stickers/index.js'
 import advisor from './commands/advisor.js'
 import { logError } from './utils/log.js'
@@ -263,6 +265,7 @@ const COMMANDS = memoize((): Command[] => [
   branch,
   btw,
   chrome,
+  checkpoint,
   clear,
   color,
   compact,
@@ -272,6 +275,7 @@ const COMMANDS = memoize((): Command[] => [
   context,
   contextNonInteractive,
   cost,
+  dashboard,
   diff,
   doctor,
   effort,
